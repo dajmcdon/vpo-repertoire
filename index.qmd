@@ -1,6 +1,6 @@
 ---
 title: "VPO Repertoire History"
-date: "16 March 2024"
+date: "20 March 2025"
 format: 
   html:
     toc: true
@@ -11,53 +11,10 @@ execute:
   message: false
 ---
 
-```{r data}
+```{r packages}
 library(tidyverse)
 library(plotly)
-orch <- read_lines("data/vpo-archive-performances.txt")
-dates <- str_extract_all(orch, "^\\d{4}")
-composers <- str_extract_all(orch, "(?<=\\t)(.*?)(?=\\:)")
-piece <- str_extract_all(orch, "(?<=\\:\\ )(.*)")
-piece <- lapply(piece, str_remove_all, pattern = "\\ \\([^)]*\\)")
 ```
-
-```{r functions}
-cat_na <- function(x) if (length(x) < 1L) NA_character_ else x
-orch_tib <- tibble(
-  year = list_c(lapply(dates, cat_na)),
-  composer = list_c(lapply(composers, cat_na)),
-  piece = list_c(lapply(piece, cat_na))
-)
-grab_last_name <- function(x) {
-  x <- str_split(x, " ")
-  lens <- lapply(x, length)
-  map2_chr(x, lens, ~ .x[.y])
-}
-```
-
-```{r processing}
-orch_tib <- orch_tib |>
-  fill(year) |>
-  drop_na() |>
-  mutate(across(composer:piece, ~str_squish(.x))) |>
-  mutate(composer = grab_last_name(composer))
-
-dated <- read_lines("data/vpo-rep-dated.txt") |>
-  str_split(",") |>
-  map(~{
-    n <- length(.x)
-    year = as.integer(substr(.x[n], 1, 4))
-    tibble(composer = .x[1],
-           piece = paste(.x[2:(n-1)], collapse = ","),
-           composed = year)
-  }) |>
-  list_rbind() |>
-  mutate(composer = grab_last_name(composer)) |>
-  distinct(composer, piece, .keep_all = TRUE)
-
-orch_tib <- left_join(orch_tib, dated) |> mutate(year = as.integer(year))
-```
-
 
 ## Repertoire from previous seasons
 
@@ -65,10 +22,11 @@ orch_tib <- left_join(orch_tib, dated) |> mutate(year = as.integer(year))
     * Click the arrows to arrange by that column
 * The "composed" column was done by Chat-GPT, so may have errors or be missing.
 * The date "performed" should always be correct.
-* The concerto competition repertoire are most likely to be missing dates of composition
-* There are some misspellings (Shoatakovich vs Shostakovich) and duplications (Symphony No. 1 vs Symphony \#1 vs Symphony \# 1)
 
 ```{r browse}
+orch_tib <- read_csv("data/orch_tib.csv")
+write_rds(orch_tib, "data/orch_tib.rds")
+orch_tib <- read_rds("data/orch_tib.rds")
 DT::datatable(
   orch_tib |> 
     relocate(composer, piece, year) |> 
@@ -85,21 +43,19 @@ DT::datatable(
 * Colours correspond to composer (though there are lots of composers)
 * If you hover over a point, the composition will display.
 * You can also Zoom and Pan the graphic
-* Lots of Romantic music, especially this season 
-    * Everything is between Nabucco (1842) and Sibelius #2 (1902), except "The Sea and Bells", the Chinese Concerti, and Prokofiev Piano Concerto
 
 ```{r show-rep}
 #| column: page-inset-left
 p <- orch_tib |>
   mutate(
     lab = paste(composer, piece, sep = ": "),
-    alp = year <= 2014
+    alp = year <= 2015
   ) |>
   ggplot(aes(composed, year, color = composer, text = lab, alpha = alp)) +
   geom_point(shape = 16, size = 2) +
   scale_alpha_manual(guide = "none", values = c(.4, 1)) +
   scale_color_viridis_d(guide = "none") +
-  geom_hline(yintercept = 2014) +
+  geom_hline(yintercept = 2015) +
   theme_bw() +
   ylab("Year performed") + xlab("Year composed") +
   theme(legend.position = "none")
