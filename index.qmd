@@ -1,9 +1,11 @@
 ---
 title: "VPO Repertoire History"
-date: "20 March 2025"
+date: last-modified
+title-block-banner: "#5606bd"
+title-block-banner-color: "white"
 format: 
   html:
-    toc: true
+    toc: false
     theme: cosmo
 execute:
   echo: false
@@ -45,7 +47,8 @@ DT::datatable(
 * You can also Zoom and Pan the graphic
 
 ```{r show-rep}
-#| column: page-inset-left
+#| column: body-outset
+#| fig-height: 6
 p <- orch_tib |>
   mutate(
     lab = paste(composer, piece, sep = ": "),
@@ -62,9 +65,68 @@ p <- orch_tib |>
 ggplotly(p, tooltip = "text")
 ```
 
+## Sales data from recent performances
+
+```{r sales}
+#| column: body-outset
+#| fig-height: 6
+sales <- tribble(
+  ~ "date", ~ "attendance", ~ "sales", ~ "theme",
+  "2017-10", NA, 3280, "Beethoven 5",
+  "2017-12", NA, NA, "piano gala",
+  "2018-02", 370, 4977, "centennial thr / Planets",
+  "2018-04", 163, 3193, "Russia",
+  "2018-05", 131, 2295, "opera",
+  "2018-10", 130, 2415, "Schubert 8",
+  "2018-12", 172, 2820, "Rhapsody in Blue", 
+  "2019-02", 65, 1315, "female composers",
+  "2019-04", NA, 2897, "Cap U choir",
+  "2019-05", 312, 4500, "movie music",
+  "2019-10", 133, 2144, "Dvorak 8",
+  "2019-12", 141, 1700, "Shost 5",
+  "2020-02", 177, 2705, "concerto comp.",
+  "2022-04", 250, 4358, "Brahms 3",
+  "2022-05", NA, NA, "Cap U choir",
+  "2022-10", 150, 2563, "Prok Cinderella",
+  "2022-12", 142, 2496, "Bizet C",
+  "2023-02", 296, 3738, "concerto comp.",
+  "2023-04", 196, 3027, "Brahms 2",
+  "2023-05", 201, 3381, "Tchaik 5",
+  "2023-10", 162, 2180, "Schumann 3",
+  "2023-12", 169, 2919, "erhu + pipa",
+  "2024-02", 212, 3676, "Comp winner",
+  "2024-04", 150, 2369, "Wallace Leung",
+  "2024-05", 164, 2925, "Sibelius 2",
+  "2024-10", 213, 3636, "Fiddles",
+  "2024-12", 199, 3830, "Beethoven Triple",
+  "2025-02", 180, 3584, "Petruchka"
+)
+
+fact <- as.character(c(2, 4, 5, 10, 12))
+names(fact) <- c(3,4,5,1,2)
+
+p <- sales |>
+  mutate(date = ym(date), `ticket price` = sales / attendance) |>
+  mutate(cn = fct_recode(factor(month(date)), !!!fact)) |>
+  mutate(cn = fct_relevel(cn, "1", "2", "3", "4", "5")) |>
+  pivot_longer(c(attendance, sales, `ticket price`)) |>
+  ggplot(aes(date, value, tt = theme)) +
+  geom_point(aes(color = cn)) +
+  theme_bw() + ylab("") + xlab("") +
+  scale_color_brewer(palette = "Set1", name = "Concert number") +
+  facet_wrap(~ name, nrow = 2, scales = "free_y") +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y")
+
+plotly::ggplotly(p, tooltip = "tt") |>
+  plotly::layout(
+    legend = list(
+      x = 0, xanchor = 'left',
+      y = -0.2, yanchor = 'bottom', orientation = 'h'
+    ))    
+```
+
 ## Sheet music in the VPO library
 
-* Browseable version of the Excel sheet that Mark shared.
 
 ```{r library}
 libr <- read_csv(
